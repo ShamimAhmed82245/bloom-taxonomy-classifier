@@ -1,12 +1,23 @@
 import { Result } from "../types";
 
-const BLOOM_LEVELS = [
-  "Knowledge",
-  "Comprehension",
-  "Application",
-  "Analysis",
-  "Synthesis",
-  "Evaluation",
+// Traditional ML Models mapping
+const TRADITIONAL_BLOOM_LEVELS = [
+  "Analyzing",
+  "Applying",
+  "Creating",
+  "Evaluating",
+  "Remembering",
+  "Understanding",
+];
+
+// Transformer Models mapping
+const TRANSFORMER_BLOOM_LEVELS = [
+  "Remembering",
+  "Understanding",
+  "Applying",
+  "Analyzing",
+  "Evaluating",
+  "Creating",
 ];
 
 const MODEL_GROUPS = {
@@ -15,21 +26,34 @@ const MODEL_GROUPS = {
   Transformers: ["bert", "distilbert", "roberta"],
 };
 
+function getBloomLevel(model: string, prediction: number): string {
+  if (MODEL_GROUPS["Transformers"].includes(model)) {
+    return TRANSFORMER_BLOOM_LEVELS[prediction];
+  }
+  return TRADITIONAL_BLOOM_LEVELS[prediction];
+}
+
 function getVotedLevel(
   predictions: Record<string, { prediction: number; probability: number }>
 ) {
-  // Count votes for each level
-  const votes = new Array(6).fill(0);
-  Object.values(predictions).forEach(({ prediction }) => {
-    votes[prediction]++;
+  // Initialize counters for each Bloom level
+  const voteCount: Record<string, number> = {};
+  TRANSFORMER_BLOOM_LEVELS.forEach((level) => (voteCount[level] = 0));
+
+  // Count votes for each model
+  Object.entries(predictions).forEach(([model, data]) => {
+    const level = getBloomLevel(model, data.prediction);
+    voteCount[level] = (voteCount[level] || 0) + 1;
   });
 
   // Find the level with most votes
-  const maxVotes = Math.max(...votes);
-  const votedLevel = votes.indexOf(maxVotes);
+  const maxVotes = Math.max(...Object.values(voteCount));
+  const votedLevel =
+    Object.entries(voteCount).find(([_, count]) => count === maxVotes)?.[0] ||
+    "";
 
   return {
-    level: BLOOM_LEVELS[votedLevel],
+    level: votedLevel,
     voteCount: maxVotes,
     totalVotes: Object.keys(predictions).length,
   };
@@ -74,11 +98,10 @@ export default function Results({ results }: { results: Result[] }) {
                           <>
                             <p>
                               Level:{" "}
-                              {
-                                BLOOM_LEVELS[
-                                  result.predictions[model].prediction
-                                ]
-                              }
+                              {getBloomLevel(
+                                model,
+                                result.predictions[model].prediction
+                              )}
                             </p>
                             <p className="text-sm text-gray-600">
                               Confidence:{" "}
