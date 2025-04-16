@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { InputProps } from "../types";
+import { InputComponentProps } from "../types";
 import { extractTextFromImage } from "../utils/geminiProcessor";
 import { classifyText } from "../utils/apiClient";
 
@@ -10,7 +10,7 @@ export default function ImageUpload({
   setResults,
   setIsLoading,
   setError,
-}: InputProps) {
+}: InputComponentProps) {
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
@@ -20,7 +20,9 @@ export default function ImageUpload({
       setError(null);
 
       try {
-        const extractedText = await extractTextFromImage(file);
+        const extractedQuestions = await extractTextFromImage(file);
+        // Join all questions with newlines to create a single string
+        const extractedText = extractedQuestions.join("\n");
         const result = await classifyText(extractedText);
         setResults([result]);
       } catch (error) {

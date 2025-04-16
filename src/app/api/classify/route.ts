@@ -1,23 +1,29 @@
+import { api } from "@/app/utils/apiClient";
 import { NextResponse } from "next/server";
-import { classifyText } from "@/app/utils/apiClient";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const { text } = await request.json();
 
-    if (!body.text) {
-      return NextResponse.json(
-        { message: "No text provided" },
-        { status: 400 }
-      );
+    if (!text) {
+      return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const result = await classifyText(body.text);
-    return NextResponse.json({ results: [result] });
+    const payload = {
+      text,
+      model_type: "all",
+    };
+
+    const response = await api.post("", payload);
+
+    return NextResponse.json({
+      predictions: response.data.predictions,
+      model_used: response.data.model_used,
+    });
   } catch (error) {
-    console.error("Classification error:", error);
+    console.error("API Error:", error);
     return NextResponse.json(
-      { message: "Failed to process classification" },
+      { error: "Failed to classify text" },
       { status: 500 }
     );
   }

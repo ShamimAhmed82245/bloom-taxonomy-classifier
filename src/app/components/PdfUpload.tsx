@@ -1,16 +1,22 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { InputProps } from "../types";
+import { InputComponentProps } from "../types";
 import { extractTextFromPdf } from "../utils/geminiProcessor";
-import { classifyText } from "../utils/apiClient";
+import { classifyMultipleQuestions } from "../utils/apiClient";
 
 export default function PdfUpload({
   setResults,
   setIsLoading,
   setError,
-}: InputProps) {
+}: InputComponentProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
@@ -18,11 +24,18 @@ export default function PdfUpload({
 
       setIsLoading(true);
       setError(null);
+      setResults([]);
 
       try {
-        const extractedText = await extractTextFromPdf(file);
-        const result = await classifyText(extractedText);
-        setResults([result]);
+        // Extract questions using Gemini AI
+        const questions = await extractTextFromPdf(file);
+
+        // Classify each question individually
+        const classificationResults = await classifyMultipleQuestions(
+          questions
+        );
+
+        setResults(classificationResults);
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Failed to process PDF"
@@ -40,22 +53,24 @@ export default function PdfUpload({
     maxFiles: 1,
   });
 
+  if (!isClient) {
+    return null; // Don't render anything on server-side
+  }
+
   return (
-    <div
-      {...getRootProps()}
-      className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-        ${
-          isDragActive
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 hover:border-blue-500"
-        }`}
-    >
-      <input {...getInputProps()} />
-      <p className="text-gray-600">
-        {isDragActive
-          ? "Drop the PDF here"
-          : "Drag & drop a PDF file here, or click to select"}
-      </p>
+    <div className="w-full max-w-2xl mx-auto p-4">
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+          ${isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
+      >
+        <input {...getInputProps()} />
+        {isDragActive ? (
+          <p>Drop the PDF here...</p>
+        ) : (
+          <p>Drag & drop a PDF here, or click to select one</p>
+        )}
+      </div>
     </div>
   );
 }

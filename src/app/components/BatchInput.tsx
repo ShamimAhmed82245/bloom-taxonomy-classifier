@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { InputProps } from "../types";
+import { InputComponentProps } from "../types";
 import { classifyText } from "../utils/apiClient";
 
 export default function BatchInput({
   setResults,
   setIsLoading,
   setError,
-}: InputProps) {
+}: InputComponentProps) {
   const [text, setText] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {

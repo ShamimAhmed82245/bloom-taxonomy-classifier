@@ -50,3 +50,45 @@ export async function classifyText(text: string): Promise<Result> {
     throw new Error("An unexpected error occurred");
   }
 }
+
+export async function classifyQuestion(question: string) {
+  try {
+    const response = await fetch("/api/classify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: question }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Classification request failed");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Classification error:", error);
+    throw error;
+  }
+}
+
+export async function classifyMultipleQuestions(questions: string[]) {
+  const results = [];
+
+  for (const question of questions) {
+    try {
+      const result = await classifyQuestion(question);
+      results.push({
+        question,
+        ...result,
+      });
+    } catch (error) {
+      results.push({
+        question,
+        error: "Classification failed",
+      });
+    }
+  }
+
+  return results;
+}
