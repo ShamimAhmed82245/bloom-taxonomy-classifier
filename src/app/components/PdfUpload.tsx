@@ -30,12 +30,31 @@ export default function PdfUpload({
         // Extract questions using Gemini AI
         const questions = await extractTextFromPdf(file);
 
-        // Classify each question individually
-        const classificationResults = await classifyMultipleQuestions(
-          questions
+        // Classify each question individually and maintain the question text
+        const results = await Promise.all(
+          questions.map(async (questionText) => {
+            const response = await fetch("/api/classify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ text: questionText }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to classify question: ${questionText}`);
+            }
+
+            const data = await response.json();
+            return {
+              text: questionText,
+              predictions: data.predictions,
+              model_used: data.model_used,
+            };
+          })
         );
 
-        setResults(classificationResults);
+        setResults(results);
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Failed to process PDF"

@@ -33,7 +33,12 @@ const TextInput: React.FC<InputComponentProps> = ({
         }
 
         const data = await response.json();
-        setResults(data.results);
+        // Create a result object that matches the expected format
+        setResults([{
+          text: inputText,
+          predictions: data.predictions,
+          model_used: data.model_used
+        }]);
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Failed to classify text"
