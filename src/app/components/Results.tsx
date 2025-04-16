@@ -35,92 +35,111 @@ function getBloomLevel(model: string, prediction: number): string {
 
 function getVotedLevel(
   predictions: Record<string, { prediction: number; probability: number }>
-) {
-  // Initialize counters for each Bloom level
-  const voteCount: Record<string, number> = {};
-  TRANSFORMER_BLOOM_LEVELS.forEach((level) => (voteCount[level] = 0));
+): { level: string; voteCount: number; totalVotes: number } {
+  const votes: Record<string, number> = {};
+  let totalVotes = 0;
 
-  // Count votes for each model
-  Object.entries(predictions).forEach(([model, data]) => {
-    const level = getBloomLevel(model, data.prediction);
-    voteCount[level] = (voteCount[level] || 0) + 1;
+  // Count votes for each level
+  Object.entries(predictions).forEach(([model, { prediction }]) => {
+    const level = getBloomLevel(model, prediction);
+    votes[level] = (votes[level] || 0) + 1;
+    totalVotes++;
   });
 
-  // Find the level with most votes
-  const maxVotes = Math.max(...Object.values(voteCount));
-  const votedLevel =
-    Object.entries(voteCount).find(([_, count]) => count === maxVotes)?.[0] ||
-    "";
+  // Find the level with the most votes
+  let maxVotes = 0;
+  let winningLevel = "";
+  Object.entries(votes).forEach(([level, count]) => {
+    if (count > maxVotes) {
+      maxVotes = count;
+      winningLevel = level;
+    }
+  });
 
   return {
-    level: votedLevel,
+    level: winningLevel,
     voteCount: maxVotes,
-    totalVotes: Object.keys(predictions).length,
+    totalVotes,
   };
 }
 
 export default function Results({ results }: { results: Result[] }) {
+  if (!results || results.length === 0) return null;
+
   return (
-    <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-4">Classification Results</h2>
-      <div className="space-y-8">
-        {results.map((result, index) => (
-          <div key={index} className="border p-6 rounded-lg shadow-sm">
-            <p className="font-medium text-lg mb-4">Question: {result.text}</p>
+    <div className="mt-8 space-y-8">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Classification Results
+      </h2>
 
-            {/* Voted Result */}
-            {result.predictions && (
-              <div className="mb-6 bg-blue-50 p-4 rounded-md">
-                <h3 className="font-semibold">Final Classification (Voting)</h3>
-                {(() => {
-                  const { level, voteCount, totalVotes } = getVotedLevel(
-                    result.predictions
-                  );
-                  return (
-                    <p className="text-lg text-blue-700">
-                      {level} ({voteCount}/{totalVotes} votes)
-                    </p>
-                  );
-                })()}
-              </div>
-            )}
-
-            {/* Individual Model Predictions */}
-            <div className="space-y-4">
-              {Object.entries(MODEL_GROUPS).map(([groupName, models]) => (
-                <div key={groupName} className="border-t pt-4">
-                  <h4 className="font-medium mb-2">{groupName} Models</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    {models.map((model) => (
-                      <div key={model} className="bg-gray-50 p-3 rounded">
-                        <p className="font-medium">{model}</p>
-                        {result.predictions && result.predictions[model] && (
-                          <>
-                            <p>
-                              Level:{" "}
-                              {getBloomLevel(
-                                model,
-                                result.predictions[model].prediction
-                              )}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Confidence:{" "}
-                              {(
-                                result.predictions[model].probability * 100
-                              ).toFixed(1)}
-                              %
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+      {results.map((result, index) => (
+        <div
+          key={index}
+          className="bg-white rounded-lg shadow-sm border p-6 space-y-4"
+        >
+          {/* Question Text */}
+          <div className="border-b pb-4">
+            <h3 className="text-lg font-medium text-gray-900">Question:</h3>
+            <p className="mt-1 text-gray-700">{result.text}</p>
           </div>
-        ))}
-      </div>
+
+          {/* Voted Result */}
+          {result.predictions && (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900">
+                Final Classification (Majority Vote)
+              </h4>
+              {(() => {
+                const { level, voteCount, totalVotes } = getVotedLevel(
+                  result.predictions
+                );
+                return (
+                  <p className="mt-2 text-lg font-medium text-blue-700">
+                    {level} ({voteCount}/{totalVotes} votes)
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Model Groups */}
+          <div className="mt-6 space-y-6">
+            {Object.entries(MODEL_GROUPS).map(([groupName, models]) => (
+              <div key={groupName} className="space-y-2">
+                <h4 className="font-semibold text-gray-800">
+                  {groupName} Models
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {models.map(
+                    (model) =>
+                      result.predictions?.[model] && (
+                        <div
+                          key={model}
+                          className="bg-gray-50 rounded p-3 border border-gray-100"
+                        >
+                          <p className="text-sm text-gray-600 mb-1">{model}</p>
+                          <p className="font-medium text-gray-900">
+                            {getBloomLevel(
+                              model,
+                              result.predictions[model].prediction
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Confidence:{" "}
+                            {(
+                              result.predictions[model].probability * 100
+                            ).toFixed(2)}
+                            %
+                          </p>
+                        </div>
+                      )
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

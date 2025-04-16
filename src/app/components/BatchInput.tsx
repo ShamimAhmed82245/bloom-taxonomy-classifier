@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { InputComponentProps } from "../types";
-import { classifyText } from "../utils/apiClient";
+import { InputComponentProps, Result } from "../types";
 
 export default function BatchInput({
   setResults,
@@ -22,9 +21,34 @@ export default function BatchInput({
         .filter((q) => q.trim())
         .map((q) => q.trim());
 
+      if (questions.length === 0) {
+        throw new Error("Please enter at least one question");
+      }
+
       const results = await Promise.all(
-        questions.map((question) => classifyText(question))
+        questions.map(async (questionText) => {
+          const response = await fetch("/api/classify", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: questionText }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to classify question: ${questionText}`);
+          }
+
+          const data = await response.json();
+          const result: Result = {
+            text: questionText,
+            predictions: data.predictions,
+            model_used: data.model_used,
+          };
+          return result;
+        })
       );
+
       setResults(results);
     } catch (error) {
       setError(

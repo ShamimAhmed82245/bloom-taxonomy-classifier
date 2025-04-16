@@ -33,46 +33,53 @@ export default function Home() {
   const handleInputTypeChange = useCallback(
     (type: InputType) => {
       setInputType(type);
+      setResults([]); // Clear results when switching tabs
+      setError(null); // Clear any existing errors
     },
-    [setInputType]
+    [setInputType, setResults, setError]
   );
 
   const InputComponent = inputComponents[inputType];
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">
+    <div className="min-h-screen bg-gray-50">
+      {/* Fixed header with tabs */}
+      <div className="fixed-header">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="flex gap-3 justify-center">
+            {(Object.keys(inputComponents) as InputType[]).map((type) => (
+              <button
+                key={type}
+                onClick={() => handleInputTypeChange(type)}
+                className={`tab-button ${
+                  inputType === type
+                    ? "tab-button-active"
+                    : "tab-button-inactive"
+                }`}
+                aria-pressed={inputType === type}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="max-w-4xl mx-auto px-4 pt-20">
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
           Bloom Taxonomy Classifier
         </h1>
 
-        {/* Input Type Selector */}
-        <div
-          className="flex gap-4 mb-8 justify-center"
-          role="radiogroup"
-          aria-label="Input type selection"
-        >
-          {(Object.keys(inputComponents) as InputType[]).map((type) => (
-            <button
-              key={type}
-              onClick={() => handleInputTypeChange(type)}
-              aria-pressed={inputType === type}
-              className={`px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                inputType === type
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 hover:bg-gray-300"
-              }`}
-            >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          ))}
-        </div>
-
         {/* Error Display */}
-        {error && <ErrorAlert error={error} onDismiss={() => setError(null)} />}
+        {error && (
+          <div className="animate-fade-in">
+            <ErrorAlert error={error} onDismiss={() => setError(null)} />
+          </div>
+        )}
 
         {/* Dynamic Input Component */}
-        <div className="mb-8">
+        <div className="input-section">
           {isLoading ? (
             <LoadingSpinner />
           ) : (
@@ -85,7 +92,9 @@ export default function Home() {
         </div>
 
         {/* Results Display */}
-        {results.length > 0 && <Results results={results} />}
+        <div className="mt-8 animate-fade-in">
+          {results.length > 0 && <Results results={results} />}
+        </div>
       </div>
     </div>
   );

@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { InputComponentProps } from "../types";
+import { InputComponentProps, Result } from "../types";
 import { extractTextFromPdf } from "../utils/geminiProcessor";
-import { classifyMultipleQuestions } from "../utils/apiClient";
 
 export default function PdfUpload({
   setResults,
@@ -46,11 +45,12 @@ export default function PdfUpload({
             }
 
             const data = await response.json();
-            return {
+            const result: Result = {
               text: questionText,
               predictions: data.predictions,
               model_used: data.model_used,
             };
+            return result;
           })
         );
 
@@ -80,14 +80,20 @@ export default function PdfUpload({
     <div className="w-full max-w-2xl mx-auto p-4">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          ${isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors duration-200
+          ${
+            isDragActive
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-300 hover:border-blue-500"
+          }`}
       >
         <input {...getInputProps()} />
         {isDragActive ? (
-          <p>Drop the PDF here...</p>
+          <p className="text-blue-500">Drop the PDF here...</p>
         ) : (
-          <p>Drag & drop a PDF here, or click to select one</p>
+          <p className="text-gray-600">
+            Drag & drop a PDF here, or click to select one
+          </p>
         )}
       </div>
     </div>

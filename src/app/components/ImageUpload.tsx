@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { InputComponentProps } from "../types";
+import { InputComponentProps, Result } from "../types";
 import { extractTextFromImage } from "../utils/geminiProcessor";
 
 export default function ImageUpload({
@@ -39,11 +39,12 @@ export default function ImageUpload({
             }
 
             const data = await response.json();
-            return {
+            const result: Result = {
               text: questionText,
               predictions: data.predictions,
               model_used: data.model_used,
             };
+            return result;
           })
         );
 

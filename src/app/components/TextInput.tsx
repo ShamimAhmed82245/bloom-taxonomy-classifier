@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import debounce from "lodash/debounce";
-import { InputComponentProps } from "../types";
+import { InputComponentProps, Result } from "../types";
 
 const TextInput: React.FC<InputComponentProps> = ({
   setResults,
@@ -33,12 +33,12 @@ const TextInput: React.FC<InputComponentProps> = ({
         }
 
         const data = await response.json();
-        // Create a result object that matches the expected format
-        setResults([{
+        const result: Result = {
           text: inputText,
           predictions: data.predictions,
-          model_used: data.model_used
-        }]);
+          model_used: data.model_used,
+        };
+        setResults([result]);
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Failed to classify text"
@@ -49,8 +49,6 @@ const TextInput: React.FC<InputComponentProps> = ({
     },
     [setResults, setIsLoading, setError]
   );
-
-  const debouncedClassify = debounce(classifyText, 500);
 
   return (
     <div>
